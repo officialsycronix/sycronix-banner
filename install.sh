@@ -5,14 +5,14 @@
 # License: MIT
 #
 # One-command installation:
-#   curl -fsSL https://github.com/officailsycronix/sycronix/raw/main/install.sh | bash
+#   curl -fsSL https://github.com/officialsycronix/sycronix-banner/raw/main/install.sh | bash
 #==============================================================================
 set -e
 
 #--- Configuration ---
 SYCRONIX_VERSION="1.0.0"
-SYCRONIX_REPO="https://github.com/officailsycronix/sycronix"
-SYCRONIX_RAW="https://raw.githubusercontent.com/officailsycronix/sycronix/main"
+SYCRONIX_REPO="https://github.com/officialsycronix/sycronix-banner"
+SYCRONIX_RAW="https://raw.githubusercontent.com/officialsycronix/sycronix-banner/main"
 
 #--- Colors ---
 RED="\033[0;31m"
@@ -207,7 +207,7 @@ __setup_shell() {
 
   echo "" >> "$rc_file"
   echo "# SYCRONIX Framework - Cyber Environment" >> "$rc_file"
-  echo "# https://github.com/officailsycronix/sycronix" >> "$rc_file"
+  echo "# https://github.com/officialsycronix/sycronix-banner" >> "$rc_file"
   echo "$source_line" >> "$rc_file"
 
   echo -e "  ${GREEN}✓${RESET} Added SYCRONIX to $(basename "$rc_file")"
