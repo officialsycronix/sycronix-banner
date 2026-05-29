@@ -1,0 +1,539 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Interactive Configuration Wizard
+# Author: SYCRONIX
+# License: MIT
+#==============================================================================
+set -e
+
+SYCRONIX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source the main library for colors and helpers
+source "${SYCRONIX_LIB_DIR}/sycronix" --source-only 2>/dev/null || true
+
+# Color helpers
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+BLUE="\033[0;34m"
+CYAN="\033[0;36m"
+MAGENTA="\033[0;35m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+CONFIG_FILE="${HOME}/.config/sycronix/sycronix.conf"
+
+# Ensure config exists
+mkdir -p "${HOME}/.config/sycronix"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  cp "${SYCRONIX_LIB_DIR}/config/default.conf" "$CONFIG_FILE"
+fi
+
+__header() {
+  clear
+  echo -e "${CYAN}${BOLD}"
+  echo "  ╔═══════════════════════════════════════════╗"
+  echo "  ║      SYCRONIX CONFIGURATION WIZARD        ║"
+  echo "  ╚═══════════════════════════════════════════╝"
+  echo -e "${RESET}"
+}
+
+__menu() {
+  __header
+  echo -e "${YELLOW}Select an option:${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  Change Theme"
+  echo -e "  ${CYAN}2${RESET})  Change Prompt Style"
+  echo -e "  ${CYAN}3${RESET})  Toggle System Info"
+  echo -e "  ${CYAN}4${RESET})  Change Colors"
+  echo -e "  ${CYAN}5${RESET})  Change Banner"
+  echo -e "  ${CYAN}6${RESET})  Change Prompt Display Options"
+  echo -e "  ${CYAN}7${RESET})  Manage Plugins"
+  echo -e "  ${CYAN}8${RESET})  Restore Defaults"
+  echo -e "  ${CYAN}9${RESET})  View Current Config"
+  echo -e "  ${CYAN}0${RESET})  Exit\n"
+  echo -ne "${CYAN}Choice [0-9]: ${RESET}"
+  read -r choice
+
+  case "$choice" in
+    1) __change_theme ;;
+    2) __change_prompt ;;
+    3) __toggle_info ;;
+    4) __change_colors ;;
+    5) __change_banner ;;
+    6) __prompt_options ;;
+    7) __manage_plugins ;;
+    8) __restore_defaults ;;
+    9) __view_config ;;
+    0) echo -e "\n${GREEN}Exiting SYCRONIX Config.${RESET}"; exit 0 ;;
+    *) echo -e "\n${RED}Invalid choice.${RESET}"; sleep 1; __menu ;;
+  esac
+}
+
+__theme_preview() {
+  local style="$1"
+  local theme_file=""
+
+  if [[ -f "${SYCRONIX_LIB_DIR}/themes/${style}.theme" ]]; then
+    theme_file="${SYCRONIX_LIB_DIR}/themes/${style}.theme"
+  fi
+
+  if [[ -z "$theme_file" ]]; then
+    echo -e "  ${RED}Cannot preview: theme not found${RESET}"
+    return 1
+  fi
+
+  # Source theme to get its colors
+  source "$theme_file"
+
+  local pu="${SYCRONIX_COLOR_BOLD}$(sycronix_color "${SYCRONIX_COLOR_PRIMARY}")"
+  local pd="$(sycronix_color "${SYCRONIX_COLOR_SECONDARY}")"
+  local pa="$(sycronix_color "${SYCRONIX_COLOR_ACCENT}")"
+  local ps="$(sycronix_color "${SYCRONIX_COLOR_SUCCESS}")"
+  local pe="$(sycronix_color "${SYCRONIX_COLOR_ERROR}")"
+  local pt="$(sycronix_color "${SYCRONIX_COLOR_TEXT}")"
+  local pdi="$(sycronix_color "${SYCRONIX_COLOR_DIM}")"
+  local cr="${SYCRONIX_COLOR_RESET}"
+
+  echo ""
+  echo -e "  ${CYAN}━━━ Theme Preview: ${style^} ━━━${RESET}\n"
+  echo -e "  ${pu}Primary${cr}   ${pd}Secondary${cr}   ${pa}Accent${cr}"
+  echo -e "  ${ps}Success${cr}   ${pe}Error${cr}   ${pt}Text${cr}"
+  echo -e "  ${pdi}Dimmed text example${cr}"
+  echo ""
+  echo -e "  ${pu}◆${cr} ${pu}user${cr} ${pd}~/projects${cr} ${pa}⚡main${cr}"
+  echo -e "  ${ps}❯${cr} ${pdi}_${cr}"
+  echo ""
+  echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
+}
+
+__change_theme() {
+  __header
+  echo -e "${YELLOW}Available Themes:${RESET}\n"
+  local i=1
+  local themes=()
+  for f in "${SYCRONIX_LIB_DIR}/themes/"*.theme; do
+    local name="$(basename "$f" .theme)"
+    themes+=("$name")
+    echo -e "  ${CYAN}${i}${RESET})  $(echo "${name^}")"
+    i=$((i+1))
+  done
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Select theme to preview [0-${#themes[@]}]: ${RESET}"
+  read -r choice
+
+  if [[ "$choice" -eq 0 ]]; then
+    __menu
+    return
+  fi
+
+  if [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#themes[@]}" ]]; then
+    local selected="${themes[$((choice-1))]}"
+
+    # Show preview
+    __theme_preview "$selected"
+
+    echo -ne "  ${CYAN}Apply '${selected^}' theme? [Y/n]: ${RESET}"
+    read -r confirm
+    if [[ "$confirm" == "n" ]] || [[ "$confirm" == "N" ]]; then
+      echo -e "\n  ${YELLOW}Theme not changed.${RESET}"
+      sleep 1
+      __change_theme
+      return
+    fi
+
+    if grep -q "^SYCRONIX_THEME=" "$CONFIG_FILE"; then
+      sed -i "s/^SYCRONIX_THEME=.*/SYCRONIX_THEME=\"${selected}\"/" "$CONFIG_FILE"
+    else
+      echo "SYCRONIX_THEME=\"${selected}\"" >> "$CONFIG_FILE"
+    fi
+    echo -e "\n${GREEN}✓ Theme set to '${selected^}'.${RESET}"
+    sleep 1
+  fi
+  __menu
+}
+
+__prompt_preview() {
+  local style="$1"
+  local prompt_file=""
+
+  if [[ -f "${SYCRONIX_LIB_DIR}/prompts/${style}.prompt" ]]; then
+    prompt_file="${SYCRONIX_LIB_DIR}/prompts/${style}.prompt"
+  fi
+
+  if [[ -z "$prompt_file" ]]; then
+    echo -e "  ${RED}Cannot preview: prompt file not found${RESET}"
+    return 1
+  fi
+
+  # Save current state
+  local old_theme="$SYCRONIX_THEME"
+  local old_banner="$SYCRONIX_BANNER"
+  local old_prompt_style="$SYCRONIX_PROMPT_STYLE"
+
+  # Temporarily load theme colors for preview
+  local theme_file=""
+  if [[ -f "${SYCRONIX_LIB_DIR}/themes/${SYCRONIX_THEME}.theme" ]]; then
+    theme_file="${SYCRONIX_LIB_DIR}/themes/${SYCRONIX_THEME}.theme"
+  fi
+  [[ -n "$theme_file" ]] && source "$theme_file"
+
+  # Source the prompt file
+  source "$prompt_file"
+
+  # Build preview colors
+  local pu="${SYCRONIX_COLOR_BOLD}$(sycronix_color "${SYCRONIX_COLOR_PRIMARY}")"
+  local pd="$(sycronix_color "${SYCRONIX_COLOR_SECONDARY}")"
+  local pg="$(sycronix_color "${SYCRONIX_COLOR_ACCENT}")"
+  local ps="$(sycronix_color "${SYCRONIX_COLOR_SUCCESS}")"
+  local pe="$(sycronix_color "${SYCRONIX_COLOR_ERROR}")"
+  local pdi="$(sycronix_color "${SYCRONIX_COLOR_DIM}")"
+  local cr="${SYCRONIX_COLOR_RESET}"
+
+  echo ""
+  echo -e "  ${CYAN}━━━ Prompt Preview: ${style^} ━━━${RESET}\n"
+
+  # Simulate prompt based on style
+  case "$style" in
+    cyber|neon|hacker)
+      if [[ "${SYCRONIX_PROMPT_MULTILINE}" == "true" ]]; then
+        echo -e "  ${pu}◆${cr} ${pd}~/projects${cr} ${pg}⚡main${cr}"
+      fi
+      echo -e "  ${ps}❯${cr}  ${pdi}_${cr}"
+      ;;
+    matrix)
+      echo -e "  ${pu}user${cr}${pdi}@${cr}${pd}~/projects${cr} ${pg}[main]${cr} ${ps}\$${cr}"
+      ;;
+    minimal)
+      echo -e "  ${pu}user${cr}${pdi}:${cr}${pd}~/projects${cr}${pg} (main)${cr} ${ps}\$${cr}"
+      ;;
+  esac
+
+  echo ""
+  echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
+}
+
+__change_prompt() {
+  __header
+  echo -e "${YELLOW}Available Prompt Styles:${RESET}\n"
+  local i=1
+  local prompts=()
+  for f in "${SYCRONIX_LIB_DIR}/prompts/"*.prompt; do
+    local name="$(basename "$f" .prompt)"
+    prompts+=("$name")
+    echo -e "  ${CYAN}${i}${RESET})  $(echo "${name^}")"
+    i=$((i+1))
+  done
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Select prompt to preview [0-${#prompts[@]}]: ${RESET}"
+  read -r choice
+
+  if [[ "$choice" -eq 0 ]]; then
+    __menu
+    return
+  fi
+
+  if [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#prompts[@]}" ]]; then
+    local selected="${prompts[$((choice-1))]}"
+
+    # Show preview
+    __prompt_preview "$selected"
+
+    echo -ne "  ${CYAN}Apply '${selected^}' prompt style? [Y/n]: ${RESET}"
+    read -r confirm
+    if [[ "$confirm" == "n" ]] || [[ "$confirm" == "N" ]]; then
+      echo -e "\n  ${YELLOW}Prompt not changed.${RESET}"
+      sleep 1
+      __change_prompt
+      return
+    fi
+
+    if grep -q "^SYCRONIX_PROMPT_STYLE=" "$CONFIG_FILE"; then
+      sed -i "s/^SYCRONIX_PROMPT_STYLE=.*/SYCRONIX_PROMPT_STYLE=\"${selected}\"/" "$CONFIG_FILE"
+    else
+      echo "SYCRONIX_PROMPT_STYLE=\"${selected}\"" >> "$CONFIG_FILE"
+    fi
+    echo -e "\n${GREEN}✓ Prompt style set to '${selected^}'.${RESET}"
+    sleep 1
+  fi
+  __menu
+}
+
+__toggle_info() {
+  __header
+  echo -e "${YELLOW}Toggle Dashboard Display Options:${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  Toggle User Display"
+  echo -e "  ${CYAN}2${RESET})  Toggle Device Model"
+  echo -e "  ${CYAN}3${RESET})  Toggle Android Version"
+  echo -e "  ${CYAN}4${RESET})  Toggle Kernel Version"
+  echo -e "  ${CYAN}5${RESET})  Toggle Shell Info"
+  echo -e "  ${CYAN}6${RESET})  Toggle Date/Time"
+  echo -e "  ${CYAN}7${RESET})  Toggle Battery"
+  echo -e "  ${CYAN}8${RESET})  Toggle IP Address"
+  echo -e "  ${CYAN}9${RESET})  Toggle Uptime"
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Choice [0-9]: ${RESET}"
+  read -r choice
+
+  case "$choice" in
+    1) __toggle_setting "SYCRONIX_SHOW_USER" ;;
+    2) __toggle_setting "SYCRONIX_SHOW_DEVICE" ;;
+    3) __toggle_setting "SYCRONIX_SHOW_ANDROID" ;;
+    4) __toggle_setting "SYCRONIX_SHOW_KERNEL" ;;
+    5) __toggle_setting "SYCRONIX_SHOW_SHELL" ;;
+    6) __toggle_setting "SYCRONIX_SHOW_DATETIME" ;;
+    7) __toggle_setting "SYCRONIX_SHOW_BATTERY" ;;
+    8) __toggle_setting "SYCRONIX_SHOW_IP" ;;
+    9) __toggle_setting "SYCRONIX_SHOW_UPTIME" ;;
+    0) __menu; return ;;
+    *) echo -e "\n${RED}Invalid choice.${RESET}"; sleep 1; __toggle_info ;;
+  esac
+}
+
+__toggle_setting() {
+  local setting="$1"
+  local current=""
+  if grep -q "^${setting}=" "$CONFIG_FILE"; then
+    current="$(grep "^${setting}=" "$CONFIG_FILE" | cut -d'"' -f2)"
+    if [[ "$current" == "true" ]]; then
+      sed -i "s/^${setting}=.*/${setting}=\"false\"/" "$CONFIG_FILE"
+      echo -e "\n${YELLOW}➜ ${setting} set to false${RESET}"
+    else
+      sed -i "s/^${setting}=.*/${setting}=\"true\"/" "$CONFIG_FILE"
+      echo -e "\n${GREEN}➜ ${setting} set to true${RESET}"
+    fi
+  else
+    echo "${setting}=\"true\"" >> "$CONFIG_FILE"
+    echo -e "\n${GREEN}➜ ${setting} set to true${RESET}"
+  fi
+  sleep 1
+  __toggle_info
+}
+
+__change_colors() {
+  __header
+  echo -e "${YELLOW}Change Colors (hex format, e.g., #00ffcc):${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  Primary Color:   ${SYCRONIX_COLOR_PRIMARY:-#00ffcc}"
+  echo -e "  ${CYAN}2${RESET})  Secondary Color: ${SYCRONIX_COLOR_SECONDARY:-#ff00ff}"
+  echo -e "  ${CYAN}3${RESET})  Accent Color:    ${SYCRONIX_COLOR_ACCENT:-#ffff00}"
+  echo -e "  ${CYAN}4${RESET})  Success Color:   ${SYCRONIX_COLOR_SUCCESS:-#00ff00}"
+  echo -e "  ${CYAN}5${RESET})  Error Color:     ${SYCRONIX_COLOR_ERROR:-#ff0044}"
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Choice [0-5]: ${RESET}"
+  read -r choice
+
+  local var=""
+  case "$choice" in
+    1) var="SYCRONIX_COLOR_PRIMARY" ;;
+    2) var="SYCRONIX_COLOR_SECONDARY" ;;
+    3) var="SYCRONIX_COLOR_ACCENT" ;;
+    4) var="SYCRONIX_COLOR_SUCCESS" ;;
+    5) var="SYCRONIX_COLOR_ERROR" ;;
+    0) __menu; return ;;
+    *) echo -e "\n${RED}Invalid choice.${RESET}"; sleep 1; __change_colors; return ;;
+  esac
+
+  echo -ne "\n${YELLOW}Enter hex color (e.g., #ff6600): ${RESET}"
+  read -r color
+  if [[ "$color" =~ ^#[0-9a-fA-F]{6}$ ]]; then
+    if grep -q "^${var}=" "$CONFIG_FILE"; then
+      sed -i "s|^${var}=.*|${var}=\"${color}\"|" "$CONFIG_FILE"
+    else
+      echo "${var}=\"${color}\"" >> "$CONFIG_FILE"
+    fi
+    echo -e "${GREEN}✓ ${var} updated to ${color}${RESET}"
+  else
+    echo -e "${RED}Invalid hex color format. Use #rrggbb${RESET}"
+  fi
+  sleep 1
+  __change_colors
+}
+
+__banner_preview() {
+  local style="$1"
+  local banner_file=""
+
+  if [[ -f "${SYCRONIX_LIB_DIR}/banners/${style}.banner" ]]; then
+    banner_file="${SYCRONIX_LIB_DIR}/banners/${style}.banner"
+  fi
+
+  if [[ -z "$banner_file" ]]; then
+    echo -e "  ${RED}Cannot preview: banner not found${RESET}"
+    return 1
+  fi
+
+  # Load theme colors
+  local theme_file=""
+  if [[ -f "${SYCRONIX_LIB_DIR}/themes/${SYCRONIX_THEME}.theme" ]]; then
+    theme_file="${SYCRONIX_LIB_DIR}/themes/${SYCRONIX_THEME}.theme"
+  fi
+  [[ -n "$theme_file" ]] && source "$theme_file"
+
+  source "$banner_file"
+
+  echo ""
+  echo -e "  ${CYAN}━━━ Banner Preview: ${style^} ━━━${RESET}\n"
+
+  local func="__sycronix_banner_${style}"
+  if declare -f "$func" &>/dev/null; then
+    "$func" 2>/dev/null
+  fi
+
+  echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
+}
+
+__change_banner() {
+  __header
+  echo -e "${YELLOW}Available Banners:${RESET}\n"
+  local i=1
+  local banners=()
+  for f in "${SYCRONIX_LIB_DIR}/banners/"*.banner; do
+    local name="$(basename "$f" .banner)"
+    banners+=("$name")
+    echo -e "  ${CYAN}${i}${RESET})  $(echo "${name^}")"
+    i=$((i+1))
+  done
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Select banner to preview [0-${#banners[@]}]: ${RESET}"
+  read -r choice
+
+  if [[ "$choice" -eq 0 ]]; then
+    __menu
+    return
+  fi
+
+  if [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#banners[@]}" ]]; then
+    local selected="${banners[$((choice-1))]}"
+
+    __banner_preview "$selected"
+
+    echo -ne "  ${CYAN}Apply '${selected^}' banner? [Y/n]: ${RESET}"
+    read -r confirm
+    if [[ "$confirm" == "n" ]] || [[ "$confirm" == "N" ]]; then
+      echo -e "\n  ${YELLOW}Banner not changed.${RESET}"
+      sleep 1
+      __change_banner
+      return
+    fi
+
+    if grep -q "^SYCRONIX_BANNER=" "$CONFIG_FILE"; then
+      sed -i "s/^SYCRONIX_BANNER=.*/SYCRONIX_BANNER=\"${selected}\"/" "$CONFIG_FILE"
+    else
+      echo "SYCRONIX_BANNER=\"${selected}\"" >> "$CONFIG_FILE"
+    fi
+    echo -e "\n${GREEN}✓ Banner set to '${selected^}'.${RESET}"
+    sleep 1
+  fi
+  __menu
+}
+
+__prompt_options() {
+  __header
+  echo -e "${YELLOW}Prompt Display Options:${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  Toggle Multi-line"
+  echo -e "  ${CYAN}2${RESET})  Toggle Git Status"
+  echo -e "  ${CYAN}3${RESET})  Toggle Exit Code"
+  echo -e "  ${CYAN}4${RESET})  Toggle Root Indicator"
+  echo -e "  ${CYAN}5${RESET})  Toggle Username"
+  echo -e "  ${CYAN}6${RESET})  Toggle Directory"
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Choice [0-6]: ${RESET}"
+  read -r choice
+
+  case "$choice" in
+    1) __toggle_setting "SYCRONIX_PROMPT_MULTILINE" ; __prompt_options ;;
+    2) __toggle_setting "SYCRONIX_PROMPT_SHOW_GIT" ; __prompt_options ;;
+    3) __toggle_setting "SYCRONIX_PROMPT_SHOW_EXIT_CODE" ; __prompt_options ;;
+    4) __toggle_setting "SYCRONIX_PROMPT_SHOW_ROOT" ; __prompt_options ;;
+    5) __toggle_setting "SYCRONIX_PROMPT_SHOW_USERNAME" ; __prompt_options ;;
+    6) __toggle_setting "SYCRONIX_PROMPT_SHOW_DIR" ; __prompt_options ;;
+    0) __menu ;;
+    *) echo -e "\n${RED}Invalid choice.${RESET}"; sleep 1; __prompt_options ;;
+  esac
+}
+
+__manage_plugins() {
+  __header
+  echo -e "${YELLOW}Manage Plugins:${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  List Available Plugins"
+  echo -e "  ${CYAN}2${RESET})  Enable/Disable Plugins"
+  echo -e "  ${CYAN}0${RESET})  Back\n"
+  echo -ne "${CYAN}Choice [0-2]: ${RESET}"
+  read -r choice
+
+  case "$choice" in
+    1)
+      echo -e "\n${YELLOW}Built-in Plugins:${RESET}"
+      for f in "${SYCRONIX_LIB_DIR}/plugins/"*.plugin; do
+        local name="$(basename "$f" .plugin)"
+        echo -e "  ${CYAN}◆${RESET} ${name^}"
+      done
+      echo -e "\n${YELLOW}User Plugins:${RESET}"
+      local user_plugin_dir="${HOME}/.config/sycronix/plugins"
+      if [[ -d "$user_plugin_dir" ]]; then
+        for f in "$user_plugin_dir"/*.plugin; do
+          if [[ -f "$f" ]]; then
+            local name="$(basename "$f" .plugin)"
+            echo -e "  ${GREEN}◆${RESET} ${name^}"
+          fi
+        done
+      else
+        echo -e "  (None installed)"
+      fi
+      echo -e "\n${YELLOW}Press Enter to continue...${RESET}"
+      read -r
+      __manage_plugins
+      ;;
+    2)
+      echo -e "\n${YELLOW}To enable/disable plugins, edit your config file:${RESET}"
+      echo -e "  ${CYAN}${CONFIG_FILE}${RESET}"
+      echo -e "\n${YELLOW}Add lines like:${RESET}"
+      echo -e "  SYCRONIX_SHOW_WEATHER=true"
+      echo -e "  SYCRONIX_SHOW_NETWORK=true"
+      echo -e "  SYCRONIX_SHOW_GITSTATUS=true"
+      echo -e "\n${YELLOW}Press Enter to continue...${RESET}"
+      read -r
+      __manage_plugins
+      ;;
+    0) __menu ;;
+    *) echo -e "\n${RED}Invalid choice.${RESET}"; sleep 1; __manage_plugins ;;
+  esac
+}
+
+__restore_defaults() {
+  __header
+  echo -e "${YELLOW}Restore default configuration?${RESET}\n"
+  echo -e "  ${CYAN}1${RESET})  Yes, restore defaults"
+  echo -e "  ${CYAN}0${RESET})  No, go back\n"
+  echo -ne "${CYAN}Choice [0-1]: ${RESET}"
+  read -r choice
+
+  if [[ "$choice" -eq 1 ]]; then
+    cp "${SYCRONIX_LIB_DIR}/config/default.conf" "$CONFIG_FILE"
+    echo -e "\n${GREEN}✓ Configuration restored to defaults.${RESET}"
+    echo -e "${YELLOW}Start a new shell to see changes.${RESET}"
+    sleep 2
+  fi
+  __menu
+}
+
+__view_config() {
+  __header
+  echo -e "${YELLOW}Current Configuration:${RESET}\n"
+  if [[ -f "$CONFIG_FILE" ]]; then
+    while IFS= read -r line; do
+      if [[ -z "$line" || "$line" == \#* ]]; then
+        echo -e "  ${CYAN}${line}${RESET}"
+      else
+        echo -e "  ${GREEN}${line}${RESET}"
+      fi
+    done < "$CONFIG_FILE"
+  else
+    echo -e "  ${RED}No configuration file found.${RESET}"
+  fi
+  echo -e "\n${YELLOW}Press Enter to continue...${RESET}"
+  read -r
+  __menu
+}
+
+#--- Main ---
+__menu

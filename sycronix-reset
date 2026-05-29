@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Reset to Defaults
+# Author: SYCRONIX
+# License: MIT
+#==============================================================================
+set -e
+
+SYCRONIX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${HOME}/.config/sycronix/sycronix.conf"
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+CYAN="\033[0;36m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+echo -e "${YELLOW}${BOLD}SYCRONIX Reset${RESET}\n"
+echo -e "  ${RED}Warning: This will reset all SYCRONIX settings to defaults.${RESET}"
+echo -e "  ${RED}Your custom themes, banners, and prompts will not be affected.${RESET}\n"
+
+echo -ne "  ${CYAN}Are you sure? [y/N]: ${RESET}"
+read -r confirm
+
+if [[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]]; then
+  if [[ -f "$CONFIG_FILE" ]]; then
+    cp "${SYCRONIX_LIB_DIR}/config/default.conf" "$CONFIG_FILE"
+    echo -e "\n  ${GREEN}✓ Configuration reset to defaults.${RESET}"
+    echo -e "  ${YELLOW}Start a new shell to see changes.${RESET}"
+  else
+    echo -e "\n  ${RED}No configuration file found. Nothing to reset.${RESET}"
+  fi
+else
+  echo -e "\n  ${YELLOW}Reset cancelled.${RESET}"
+fi
+echo ""

@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Theme Manager
+# Author: SYCRONIX
+# License: MIT
+#==============================================================================
+set -e
+
+SYCRONIX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${HOME}/.config/sycronix/sycronix.conf"
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+CYAN="\033[0;36m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+__list_themes() {
+  echo -e "${CYAN}${BOLD}Available SYCRONIX Themes:${RESET}\n"
+  for f in "${SYCRONIX_LIB_DIR}/themes/"*.theme; do
+    local name="$(basename "$f" .theme)"
+    local current=""
+    if grep -q "^SYCRONIX_THEME=\"${name}\"" "$CONFIG_FILE" 2>/dev/null; then
+      current=" ${GREEN}★ ACTIVE${RESET}"
+    fi
+    echo -e "  ${CYAN}◆${RESET} ${name^}${current}"
+  done
+}
+
+__apply_theme() {
+  local theme="$1"
+  if [[ -f "${SYCRONIX_LIB_DIR}/themes/${theme}.theme" ]]; then
+    mkdir -p "${HOME}/.config/sycronix"
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+      cp "${SYCRONIX_LIB_DIR}/config/default.conf" "$CONFIG_FILE"
+    fi
+
+    if grep -q "^SYCRONIX_THEME=" "$CONFIG_FILE"; then
+      sed -i "s/^SYCRONIX_THEME=.*/SYCRONIX_THEME=\"${theme}\"/" "$CONFIG_FILE"
+    else
+      echo "SYCRONIX_THEME=\"${theme}\"" >> "$CONFIG_FILE"
+    fi
+
+    echo -e "${GREEN}✓ Theme '${theme^}' applied.${RESET}"
+    echo -e "${YELLOW}Start a new shell to see changes.${RESET}"
+  else
+    echo -e "${RED}Error: Theme '${theme}' not found.${RESET}"
+    echo -e "Use 'sycronix-theme list' to see available themes."
+    exit 1
+  fi
+}
+
+case "${1:-}" in
+  list|ls)
+    __list_themes
+    ;;
+  apply|set)
+    if [[ -z "$2" ]]; then
+      echo -e "${RED}Usage: sycronix-theme apply <theme-name>${RESET}"
+      exit 1
+    fi
+    __apply_theme "$2"
+    ;;
+  --help|-h)
+    echo "SYCRONIX Theme Manager"
+    echo "Usage: sycronix-theme [command]"
+    echo ""
+    echo "Commands:"
+    echo "  list              List available themes"
+    echo "  apply <theme>     Apply a theme"
+    echo "  help              Show this help"
+    ;;
+  *)
+    __list_themes
+    ;;
+esac

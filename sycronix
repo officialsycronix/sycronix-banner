@@ -1,0 +1,333 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Main Entry Point
+# Author: SYCRONIX
+# License: MIT
+# Version: 1.0.0
+#
+# SYCRONIX CYBER ENVIRONMENT
+# A cyberpunk-themed Termux customization framework
+#
+# Usage:
+#   source sycronix    (from .bashrc - sets up prompt, banner, dashboard)
+#   sycronix <command> (as executable - runs command)
+#==============================================================================
+
+#--- Framework Version ---
+SYCRONIX_VERSION="1.0.0"
+
+#--- Color Definitions ---
+SYCRONIX_COLOR_RESET="\033[0m"
+SYCRONIX_COLOR_BOLD="\033[1m"
+SYCRONIX_COLOR_DIM="\033[2m"
+
+#--- Detect Script Directory ---
+SYCRONIX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+#--- Load Configuration ---
+_load_config() {
+  local config_file="${SYCRONIX_CONFIG_DIR:-${HOME}/.config/sycronix}/sycronix.conf"
+  local default_config="${SYCRONIX_LIB_DIR}/config/default.conf"
+
+  if [[ -f "$config_file" ]]; then
+    source "$config_file"
+  else
+    source "$default_config"
+  fi
+
+  SYCRONIX_CONFIG_DIR="${SYCRONIX_CONFIG_DIR:-${HOME}/.config/sycronix}"
+  SYCRONIX_PLUGIN_DIR="${SYCRONIX_PLUGIN_DIR:-${SYCRONIX_CONFIG_DIR}/plugins}"
+  SYCRONIX_THEME_DIR="${SYCRONIX_THEME_DIR:-${SYCRONIX_CONFIG_DIR}/themes}"
+  SYCRONIX_BANNER_DIR="${SYCRONIX_BANNER_DIR:-${SYCRONIX_CONFIG_DIR}/banners}"
+  SYCRONIX_PROMPT_DIR="${SYCRONIX_PROMPT_DIR:-${SYCRONIX_CONFIG_DIR}/prompts}"
+  SYCRONIX_CACHE_DIR="${SYCRONIX_CACHE_DIR:-${SYCRONIX_CONFIG_DIR}/cache}"
+}
+
+#--- Load Theme ---
+_load_theme() {
+  local theme="${SYCRONIX_THEME:-cyber}"
+  local theme_file=""
+
+  if [[ -f "${SYCRONIX_CONFIG_DIR}/themes/${theme}.theme" ]]; then
+    theme_file="${SYCRONIX_CONFIG_DIR}/themes/${theme}.theme"
+  elif [[ -f "${SYCRONIX_LIB_DIR}/themes/${theme}.theme" ]]; then
+    theme_file="${SYCRONIX_LIB_DIR}/themes/${theme}.theme"
+  fi
+
+  if [[ -n "$theme_file" ]]; then
+    source "$theme_file"
+  fi
+}
+
+#--- Load Banner ---
+_load_banner() {
+  local banner="${SYCRONIX_BANNER:-default}"
+  local banner_file=""
+
+  if [[ -f "${SYCRONIX_CONFIG_DIR}/banners/${banner}.banner" ]]; then
+    banner_file="${SYCRONIX_CONFIG_DIR}/banners/${banner}.banner"
+  elif [[ -f "${SYCRONIX_LIB_DIR}/banners/${banner}.banner" ]]; then
+    banner_file="${SYCRONIX_LIB_DIR}/banners/${banner}.banner"
+  fi
+
+  if [[ -n "$banner_file" ]]; then
+    source "$banner_file"
+  fi
+}
+
+#--- Load Prompt ---
+_load_prompt() {
+  local prompt="${SYCRONIX_PROMPT_STYLE:-cyber}"
+  local prompt_file=""
+
+  if [[ -f "${SYCRONIX_CONFIG_DIR}/prompts/${prompt}.prompt" ]]; then
+    prompt_file="${SYCRONIX_CONFIG_DIR}/prompts/${prompt}.prompt"
+  elif [[ -f "${SYCRONIX_LIB_DIR}/prompts/${prompt}.prompt" ]]; then
+    prompt_file="${SYCRONIX_LIB_DIR}/prompts/${prompt}.prompt"
+  fi
+
+  if [[ -n "$prompt_file" ]]; then
+    source "$prompt_file"
+  fi
+
+  SYCRONIX_PROMPT_COLOR_USER="${SYCRONIX_COLOR_BOLD}$(sycronix_color "${SYCRONIX_COLOR_PRIMARY}")"
+  SYCRONIX_PROMPT_COLOR_DIR="$(sycronix_color "${SYCRONIX_COLOR_SECONDARY}")"
+  SYCRONIX_PROMPT_COLOR_GIT="$(sycronix_color "${SYCRONIX_COLOR_ACCENT}")"
+  SYCRONIX_PROMPT_COLOR_SUCCESS="$(sycronix_color "${SYCRONIX_COLOR_SUCCESS}")"
+  SYCRONIX_PROMPT_COLOR_ERROR="$(sycronix_color "${SYCRONIX_COLOR_ERROR}")"
+  SYCRONIX_PROMPT_COLOR_DIM="$(sycronix_color "${SYCRONIX_COLOR_DIM}")"
+}
+
+#--- Color Conversion (Hex to ANSI 256) ---
+sycronix_color() {
+  local hex="$1"
+  hex="${hex//#/}"
+  local r=$((16#${hex:0:2}))
+  local g=$((16#${hex:2:2}))
+  local b=$((16#${hex:4:2}))
+  local color=$((16 + (r/51)*36 + (g/51)*6 + (b/51)))
+  echo "\033[38;5;${color}m"
+}
+
+#--- Display System Info Dashboard ---
+__sycronix_dashboard() {
+  local separator="──────────────────────────────────────────────────────"
+  echo -e "\n${SYCRONIX_COLOR_DIM}${separator}${SYCRONIX_COLOR_RESET}"
+
+  if [[ "${SYCRONIX_SHOW_USER}" == "true" ]]; then
+    echo -e "${SYCRONIX_COLOR_DIM}User:${SYCRONIX_COLOR_RESET}        ${SYCRONIX_PROMPT_COLOR_USER}${USER}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_DEVICE}" == "true" ]]; then
+    local device="Unknown"
+    if [[ -f "/system/build.prop" ]]; then
+      device="$(grep -o 'ro.product.model=.*' /system/build.prop 2>/dev/null | cut -d= -f2 | tr -d '\n\r')"
+    elif command -v getprop &>/dev/null; then
+      device="$(getprop ro.product.model 2>/dev/null)"
+    fi
+    echo -e "${SYCRONIX_COLOR_DIM}Device:${SYCRONIX_COLOR_RESET}       ${SYCRONIX_COLOR_TEXT}${device}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_ANDROID}" == "true" ]]; then
+    local android="Unknown"
+    if command -v getprop &>/dev/null; then
+      android="$(getprop ro.build.version.release 2>/dev/null)"
+    elif [[ -f "/system/build.prop" ]]; then
+      android="$(grep -o 'ro.build.version.release=.*' /system/build.prop 2>/dev/null | cut -d= -f2 | tr -d '\n\r')"
+    fi
+    echo -e "${SYCRONIX_COLOR_DIM}Android:${SYCRONIX_COLOR_RESET}      ${SYCRONIX_COLOR_TEXT}${android}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_KERNEL}" == "true" ]]; then
+    echo -e "${SYCRONIX_COLOR_DIM}Kernel:${SYCRONIX_COLOR_RESET}       ${SYCRONIX_COLOR_TEXT}$(uname -r 2>/dev/null || echo "Unknown")${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_SHELL}" == "true" ]]; then
+    local shell_name=""
+    if [[ -n "$BASH_VERSION" ]]; then
+      shell_name="bash ${BASH_VERSION}"
+    elif [[ -n "$ZSH_VERSION" ]]; then
+      shell_name="zsh ${ZSH_VERSION}"
+    else
+      shell_name="${SHELL##*/}"
+    fi
+    echo -e "${SYCRONIX_COLOR_DIM}Shell:${SYCRONIX_COLOR_RESET}        ${SYCRONIX_COLOR_TEXT}${shell_name}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_DATETIME}" == "true" ]]; then
+    echo -e "${SYCRONIX_COLOR_DIM}Date/Time:${SYCRONIX_COLOR_RESET}    ${SYCRONIX_COLOR_TEXT}$(date '+%Y-%m-%d %H:%M:%S')${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_BATTERY}" == "true" ]]; then
+    __sycronix_dashboard_battery
+  fi
+
+  if [[ "${SYCRONIX_SHOW_IP}" == "true" ]]; then
+    local ip_address="N/A"
+    if command -v curl &>/dev/null; then
+      ip_address="$(curl -s ifconfig.me 2>/dev/null || echo "N/A")"
+    elif command -v ip &>/dev/null; then
+      ip_address="$(ip route get 1 2>/dev/null | awk '{print $NF;exit}' || echo "N/A")"
+    fi
+    echo -e "${SYCRONIX_COLOR_DIM}IP:${SYCRONIX_COLOR_RESET}           ${SYCRONIX_COLOR_TEXT}${ip_address}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_SHOW_UPTIME}" == "true" ]]; then
+    local uptime="N/A"
+    if command -v uptime &>/dev/null; then
+      uptime="$(uptime -p 2>/dev/null | sed 's/up //')"
+    elif [[ -f /proc/uptime ]]; then
+      local seconds="$(awk '{printf "%d", $1}' /proc/uptime 2>/dev/null)"
+      local days=$((seconds / 86400))
+      local hours=$(( (seconds % 86400) / 3600 ))
+      local mins=$(( (seconds % 3600) / 60 ))
+      uptime=""
+      [[ $days -gt 0 ]] && uptime+="${days}d "
+      [[ $hours -gt 0 ]] && uptime+="${hours}h "
+      uptime+="${mins}m"
+    fi
+    echo -e "${SYCRONIX_COLOR_DIM}Uptime:${SYCRONIX_COLOR_RESET}       ${SYCRONIX_COLOR_TEXT}${uptime}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  __sycronix_run_plugins
+  echo -e "${SYCRONIX_COLOR_DIM}${separator}${SYCRONIX_COLOR_RESET}\n"
+}
+
+#--- Battery Info ---
+__sycronix_dashboard_battery() {
+  local battery="N/A"
+  if [[ -d "/sys/class/power_supply" ]]; then
+    local bat_cap=""
+    local bat_status=""
+    for dir in /sys/class/power_supply/*; do
+      if [[ -f "${dir}/capacity" ]]; then
+        bat_cap="$(cat "${dir}/capacity" 2>/dev/null)"
+        if [[ -n "$bat_cap" ]]; then
+          if [[ -f "${dir}/status" ]]; then
+            bat_status="$(cat "${dir}/status" 2>/dev/null)"
+            case "$bat_status" in
+              Charging) bat_status=" ⚡" ;;
+              Discharging) bat_status=" ▼" ;;
+              Full) bat_status=" ●" ;;
+              *) bat_status="" ;;
+            esac
+          fi
+          battery="${bat_cap}%${bat_status}"
+          break
+        fi
+      fi
+    done
+  elif command -v termux-battery-status &>/dev/null; then
+    local batt_json
+    batt_json="$(termux-battery-status 2>/dev/null)"
+    battery="$(echo "$batt_json" | python3 -c "
+import sys,json
+try:
+    d=json.load(sys.stdin)
+    print(f\"{d['percentage']}% {'⚡' if d['status']=='CHARGING' else '▼' if d['status']=='DISCHARGING' else '●'}\")
+except:
+    print('N/A')
+" 2>/dev/null)"
+  fi
+  echo -e "${SYCRONIX_COLOR_DIM}Battery:${SYCRONIX_COLOR_RESET}       ${SYCRONIX_COLOR_TEXT}${battery}${SYCRONIX_COLOR_RESET}"
+}
+
+#--- Run Plugins ---
+__sycronix_run_plugins() {
+  local plugin_dir="${SYCRONIX_PLUGIN_DIR}"
+  if [[ ! -d "$plugin_dir" ]]; then
+    return
+  fi
+  for plugin in "$plugin_dir"/*.plugin; do
+    if [[ -f "$plugin" ]]; then
+      source "$plugin" 2>/dev/null || true
+      local plugin_name
+      plugin_name="$(basename "$plugin" .plugin)"
+      local func_name="__sycronix_plugin_${plugin_name}"
+      if declare -f "$func_name" &>/dev/null; then
+        "$func_name" 2>/dev/null || true
+      fi
+    fi
+  done
+}
+
+#--- Display Banner ---
+__sycronix_display_banner() {
+  local banner="${SYCRONIX_BANNER:-default}"
+  local banner_func="__sycronix_banner_${banner}"
+  if declare -f "$banner_func" &>/dev/null; then
+    "$banner_func"
+  fi
+}
+
+#--- Initialize SYCRONIX (call when sourced from .bashrc) ---
+__sycronix_init() {
+  _load_config
+  _load_theme
+  _load_banner
+  _load_prompt
+
+  local prompt_func="__sycronix_prompt_${SYCRONIX_PROMPT_STYLE}"
+  if declare -f "$prompt_func" &>/dev/null; then
+    if [[ -n "$BASH_VERSION" ]]; then
+      PROMPT_COMMAND="${prompt_func}"
+    elif [[ -n "$ZSH_VERSION" ]]; then
+      precmd_functions+=("${prompt_func}")
+    fi
+  fi
+
+  if [[ "${SYCRONIX_SHOW_BANNER}" == "true" ]]; then
+    __sycronix_display_banner
+  fi
+
+  if [[ "${SYCRONIX_SHOW_DASHBOARD}" == "true" ]]; then
+    __sycronix_dashboard
+  fi
+}
+
+#--- Determine if sourced or executed ---
+# When sourced, BASH_SOURCE[0] != $0
+# When executed, BASH_SOURCE[0] == $0
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  # Executed as a command
+  case "${1:-}" in
+    help|--help|-h)
+      echo "SYCRONIX Framework v${SYCRONIX_VERSION}"
+      echo "Usage: sycronix [command]"
+      echo ""
+      echo "Commands:"
+      echo "  config          Open interactive configuration wizard"
+      echo "  theme           Change theme"
+      echo "  update          Check for updates"
+      echo "  reset           Reset to defaults"
+      echo "  version         Show version"
+      echo "  help            Show this help"
+      ;;
+    config)
+      command -v sycronix-config &>/dev/null && exec sycronix-config || echo "Error: sycronix-config not found"
+      ;;
+    theme)
+      command -v sycronix-theme &>/dev/null && exec sycronix-theme "${@:2}" || echo "Error: sycronix-theme not found"
+      ;;
+    update)
+      command -v sycronix-update &>/dev/null && exec sycronix-update || echo "Error: sycronix-update not found"
+      ;;
+    reset)
+      command -v sycronix-reset &>/dev/null && exec sycronix-reset || echo "Error: sycronix-reset not found"
+      ;;
+    version|--version|-v)
+      echo "SYCRONIX Framework v${SYCRONIX_VERSION}"
+      echo "Author: SYCRONIX"
+      echo "License: MIT"
+      ;;
+    *)
+      __sycronix_init
+      ;;
+  esac
+else
+  # Sourced from .bashrc / shell config
+  # Only init if interactive shell
+  if [[ $- == *i* ]]; then
+    __sycronix_init
+  fi
+fi

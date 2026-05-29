@@ -1,0 +1,20 @@
+#==============================================================================
+# SYCRONIX Banner: Neon
+# Bright neon glow banner with pink/blue gradient effect
+#==============================================================================
+BANNER_NAME="Neon"
+BANNER_DESC="Bright neon glow banner"
+
+__sycronix_banner_neon() {
+  echo -e "
+${SYCRONIX_COLOR_PRIMARY}
+  ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★
+  ★   S Y C R O N I X   —   C Y B E R   E N V I R O N M E N T   ★
+  ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★   ★ ★ ★ ★ ★
+${SYCRONIX_COLOR_SECONDARY}
+  ═══════════════════════════════════════════════════════════════════════
+  ║                    ACCESS GRANTED — WELCOME BACK ${USER}                    ║
+  ═══════════════════════════════════════════════════════════════════════
+${SYCRONIX_COLOR_DIM}  ─── SYCRONIX v1.0.0 ───${SYCRONIX_COLOR_RESET}
+"
+}

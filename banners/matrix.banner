@@ -1,0 +1,23 @@
+#==============================================================================
+# SYCRONIX Banner: Matrix
+# Matrix digital rain aesthetic banner
+#==============================================================================
+BANNER_NAME="Matrix"
+BANNER_DESC="Matrix digital rain aesthetic"
+
+__sycronix_banner_matrix() {
+  echo -e "
+${SYCRONIX_COLOR_PRIMARY}
+  [01110011 01111001 01100011 01110010 01101111 01101110 01101001 01111000]
+  [01010011 01011001 01000011 01010010 01001111 01001110 01001001 01011000]
+${SYCRONIX_COLOR_SECONDARY}
+  > SYCRONIX_CYBER_ENVIRONMENT
+  > VERSION: 1.0.0
+  > STATUS: ACCESS_GRANTED
+  > USER: ${USER}
+${SYCRONIX_COLOR_DIM}
+  > LOADING SYSTEM...
+  > SYSTEM READY.
+  > WELCOME BACK, ${USER}.${SYCRONIX_COLOR_RESET}
+"
+}

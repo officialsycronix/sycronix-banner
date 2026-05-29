@@ -1,0 +1,32 @@
+#==============================================================================
+# SYCRONIX Plugin: Network Monitor
+# Displays network information and connection status
+#==============================================================================
+PLUGIN_NAME="Network Monitor"
+PLUGIN_DESC="Display network connection information"
+PLUGIN_VERSION="1.0.0"
+PLUGIN_AUTHOR="SYCRONIX"
+
+__sycronix_plugin_network() {
+  if [[ "${SYCRONIX_SHOW_NETWORK}" != "true" ]]; then
+    return
+  fi
+
+  local iface=""
+  local ip=""
+
+  if command -v ip &>/dev/null; then
+    iface=$(ip route show default 2>/dev/null | awk '{print $5}' | head -1)
+    ip=$(ip addr show "$iface" 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d/ -f1 | head -1)
+  fi
+
+  if [[ -z "$ip" ]]; then
+    ip="Not connected"
+  fi
+
+  echo "${SYCRONIX_COLOR_DIM}Network:${SYCRONIX_COLOR_RESET} ${iface:-N/A} (${ip})"
+}
+
+__sycronix_plugin_network_info() {
+  echo "  ${SYCRONIX_COLOR_PRIMARY}◆${SYCRONIX_COLOR_RESET} Network: Shows active interface and IP"
+}

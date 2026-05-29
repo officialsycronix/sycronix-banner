@@ -1,0 +1,44 @@
+#==============================================================================
+# SYCRONIX Prompt: Matrix
+# Green-on-black hacker-style single-line prompt
+#==============================================================================
+PROMPT_NAME="Matrix"
+PROMPT_DESC="Green-on-black hacker-style prompt"
+
+__sycronix_prompt_matrix() {
+  local exit_code=$?
+  local prompt=""
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_USERNAME}" == "true" ]]; then
+    prompt+="${SYCRONIX_PROMPT_COLOR_USER}\u${SYCRONIX_COLOR_RESET}"
+  fi
+
+  prompt+="${SYCRONIX_PROMPT_COLOR_DIR}@${SYCRONIX_COLOR_RESET}"
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_DIR}" == "true" ]]; then
+    prompt+="${SYCRONIX_PROMPT_COLOR_DIR}\w${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_GIT}" == "true" ]] && command -v git &>/dev/null; then
+    local git_branch="$(git branch 2>/dev/null | sed -n 's/^\* //p')"
+    if [[ -n "$git_branch" ]]; then
+      prompt+=" ${SYCRONIX_PROMPT_COLOR_GIT}[${git_branch}]${SYCRONIX_COLOR_RESET}"
+    fi
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_EXIT_CODE}" == "true" ]]; then
+    if [[ $exit_code -eq 0 ]]; then
+      prompt+=" ${SYCRONIX_PROMPT_COLOR_SUCCESS}${SYCRONIX_ICON_SUCCESS}${SYCRONIX_COLOR_RESET}"
+    else
+      prompt+=" ${SYCRONIX_PROMPT_COLOR_ERROR}${exit_code}${SYCRONIX_COLOR_RESET}"
+    fi
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_ROOT}" == "true" ]] && [[ $EUID -eq 0 ]]; then
+    prompt+=" ${SYCRONIX_PROMPT_COLOR_ERROR}${SYCRONIX_ICON_ROOT}${SYCRONIX_COLOR_RESET} "
+  else
+    prompt+=" ${SYCRONIX_PROMPT_COLOR_SUCCESS}${SYCRONIX_ICON_PROMPT}${SYCRONIX_COLOR_RESET} "
+  fi
+
+  PS1="${prompt} "
+}

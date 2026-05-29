@@ -1,0 +1,17 @@
+#==============================================================================
+# SYCRONIX Banner: Minimal
+# Clean, minimal SYCRONIX wordmark
+#==============================================================================
+BANNER_NAME="Minimal"
+BANNER_DESC="Clean minimal wordmark"
+
+__sycronix_banner_minimal() {
+  echo -e "
+${SYCRONIX_COLOR_PRIMARY}╔══════════════════════════════════════════╗
+║          S Y C R O N I X            ║
+║       CYBER ENVIRONMENT v1.0.0       ║
+║                                      ║
+║     ACCESS GRANTED — WELCOME BACK    ║
+╚══════════════════════════════════════════╝${SYCRONIX_COLOR_RESET}
+"
+}

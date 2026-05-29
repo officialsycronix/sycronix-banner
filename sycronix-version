@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Version Information
+# Author: SYCRONIX
+# License: MIT
+#==============================================================================
+set -e
+
+SYCRONIX_VERSION="1.0.0"
+
+CYAN="\033[0;36m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+echo -e "${CYAN}${BOLD}"
+echo "  ╔═══════════════════════════════════════════╗"
+echo "  ║         SYCRONIX Framework v${SYCRONIX_VERSION}         ║"
+echo "  ╚═══════════════════════════════════════════╝"
+echo -e "${RESET}"
+echo -e "  ${GREEN}Author:${RESET}  SYCRONIX"
+echo -e "  ${GREEN}License:${RESET} MIT"
+echo -e "  ${GREEN}Type:${RESET}    Termux Customization Framework"
+echo -e "  ${GREEN}Theme:${RESET}   Cyberpunk / Neon"
+echo ""
+echo -e "  ${YELLOW}Commands:${RESET}"
+echo -e "    sycronix          Initialize environment"
+echo -e "    sycronix-config   Configuration wizard"
+echo -e "    sycronix-theme    Theme manager"
+echo -e "    sycronix-update   Check for updates"
+echo -e "    sycronix-reset    Reset to defaults"
+echo -e "    sycronix-version  Version information"
+echo ""

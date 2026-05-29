@@ -1,0 +1,55 @@
+#==============================================================================
+# SYCRONIX Prompt: Cyber
+# Multi-line cyberpunk prompt with git integration and status indicators
+#==============================================================================
+PROMPT_NAME="Cyber"
+PROMPT_DESC="Multi-line cyberpunk prompt with git status"
+
+__sycronix_prompt_cyber() {
+  local exit_code=$?
+  local prompt=""
+
+  # First line
+  if [[ "${SYCRONIX_PROMPT_MULTILINE}" == "true" ]]; then
+    prompt+="\n"
+  fi
+
+  # User@Host section
+  if [[ "${SYCRONIX_PROMPT_SHOW_USERNAME}" == "true" ]]; then
+    prompt+="${SYCRONIX_ICON_USER} ${SYCRONIX_PROMPT_COLOR_USER}\u${SYCRONIX_COLOR_RESET}"
+  fi
+
+  # Directory section
+  if [[ "${SYCRONIX_PROMPT_SHOW_DIR}" == "true" ]]; then
+    prompt+=" ${SYCRONIX_ICON_DIR} ${SYCRONIX_PROMPT_COLOR_DIR}\w${SYCRONIX_COLOR_RESET}"
+  fi
+
+  # Git branch
+  if [[ "${SYCRONIX_PROMPT_SHOW_GIT}" == "true" ]] && command -v git &>/dev/null; then
+    local git_branch="$(git branch 2>/dev/null | sed -n 's/^\* //p')"
+    if [[ -n "$git_branch" ]]; then
+      prompt+=" ${SYCRONIX_ICON_GIT} ${SYCRONIX_PROMPT_COLOR_GIT}${git_branch}${SYCRONIX_COLOR_RESET}"
+    fi
+  fi
+
+  # Exit code
+  if [[ "${SYCRONIX_PROMPT_SHOW_EXIT_CODE}" == "true" ]]; then
+    if [[ $exit_code -ne 0 ]]; then
+      prompt+=" ${SYCRONIX_PROMPT_COLOR_ERROR}${exit_code}${SYCRONIX_COLOR_RESET}"
+    fi
+  fi
+
+  # New line for prompt symbol
+  if [[ "${SYCRONIX_PROMPT_MULTILINE}" == "true" ]]; then
+    prompt+="\n"
+  fi
+
+  # Prompt symbol
+  if [[ "${SYCRONIX_PROMPT_SHOW_ROOT}" == "true" ]] && [[ $EUID -eq 0 ]]; then
+    prompt+="${SYCRONIX_PROMPT_COLOR_ERROR}${SYCRONIX_ICON_ROOT}${SYCRONIX_COLOR_RESET} "
+  else
+    prompt+="${SYCRONIX_PROMPT_COLOR_SUCCESS}${SYCRONIX_ICON_PROMPT}${SYCRONIX_COLOR_RESET} "
+  fi
+
+  PS1="${prompt} "
+}

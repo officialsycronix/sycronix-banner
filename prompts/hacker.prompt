@@ -1,0 +1,50 @@
+#==============================================================================
+# SYCRONIX Prompt: Hacker
+# Terminal-style prompt with amber/green color scheme
+#==============================================================================
+PROMPT_NAME="Hacker"
+PROMPT_DESC="Terminal-style prompt with amber accents"
+
+__sycronix_prompt_hacker() {
+  local exit_code=$?
+  local prompt=""
+
+  prompt+="${SYCRONIX_PROMPT_COLOR_DIM}[${SYCRONIX_COLOR_RESET}"
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_USERNAME}" == "true" ]]; then
+    prompt+="${SYCRONIX_PROMPT_COLOR_USER}\u${SYCRONIX_COLOR_RESET}"
+  fi
+
+  prompt+="${SYCRONIX_PROMPT_COLOR_DIM}@${SYCRONIX_COLOR_RESET}"
+
+  prompt+="${SYCRONIX_PROMPT_COLOR_DIR}\h${SYCRONIX_COLOR_RESET}"
+
+  prompt+="${SYCRONIX_PROMPT_COLOR_DIM}]${SYCRONIX_COLOR_RESET}"
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_DIR}" == "true" ]]; then
+    prompt+=" ${SYCRONIX_PROMPT_COLOR_DIR}\w${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_GIT}" == "true" ]] && command -v git &>/dev/null; then
+    local git_branch="$(git branch 2>/dev/null | sed -n 's/^\* //p')"
+    if [[ -n "$git_branch" ]]; then
+      prompt+=" ${SYCRONIX_PROMPT_COLOR_GIT}<${git_branch}>${SYCRONIX_COLOR_RESET}"
+    fi
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_EXIT_CODE}" == "true" ]] && [[ $exit_code -ne 0 ]]; then
+    prompt+=" ${SYCRONIX_PROMPT_COLOR_ERROR}ERR:${exit_code}${SYCRONIX_COLOR_RESET}"
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_MULTILINE}" == "true" ]]; then
+    prompt+="\n"
+  fi
+
+  if [[ "${SYCRONIX_PROMPT_SHOW_ROOT}" == "true" ]] && [[ $EUID -eq 0 ]]; then
+    prompt+="${SYCRONIX_PROMPT_COLOR_ERROR}${SYCRONIX_ICON_ROOT}${SYCRONIX_COLOR_RESET} "
+  else
+    prompt+="${SYCRONIX_PROMPT_COLOR_SUCCESS}${SYCRONIX_ICON_PROMPT}${SYCRONIX_COLOR_RESET} "
+  fi
+
+  PS1="${prompt} "
+}

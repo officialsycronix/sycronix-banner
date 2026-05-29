@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#==============================================================================
+# SYCRONIX Framework - Update Manager
+# Author: SYCRONIX
+# License: MIT
+#==============================================================================
+set -e
+
+SYCRONIX_VERSION="1.0.0"
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+CYAN="\033[0;36m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+echo -e "${CYAN}${BOLD}SYCRONIX Update Check${RESET}\n"
+echo -e "  ${YELLOW}Current version: ${SYCRONIX_VERSION}${RESET}"
+
+# Check for updates via GitHub
+if command -v curl &>/dev/null; then
+  echo -e "  ${CYAN}Checking for updates...${RESET}"
+  latest="$(curl -s https://api.github.com/repos/officailsycronix/sycronix/releases/latest 2>/dev/null | grep '"tag_name"' | head -1 | cut -d'"' -f4 || echo "")"
+  
+  if [[ -n "$latest" ]]; then
+    if [[ "$latest" != "v${SYCRONIX_VERSION}" ]]; then
+      echo -e "  ${GREEN}New version available: ${latest}${RESET}"
+      echo -e "  ${YELLOW}Update with: curl -fsSL https://github.com/officailsycronix/sycronix/raw/main/install.sh | bash${RESET}"
+    else
+      echo -e "  ${GREEN}You are up to date!${RESET}"
+    fi
+  else
+    echo -e "  ${YELLOW}Could not check for updates (no network).${RESET}"
+  fi
+else
+  echo -e "  ${YELLOW}Install curl to enable update checking.${RESET}"
+fi
+
+echo ""

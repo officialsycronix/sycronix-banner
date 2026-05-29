@@ -1,0 +1,19 @@
+#==============================================================================
+# SYCRONIX Plugin: Battery Monitor
+# Displays battery percentage and charging status
+#==============================================================================
+PLUGIN_NAME="Battery Monitor"
+PLUGIN_DESC="Display battery level and charging status"
+PLUGIN_VERSION="1.0.0"
+PLUGIN_AUTHOR="SYCRONIX"
+
+__sycronix_plugin_battery() {
+  if [[ "${SYCRONIX_SHOW_BATTERY}" != "true" ]]; then
+    return
+  fi
+  __sycronix_dashboard_battery
+}
+
+__sycronix_plugin_battery_info() {
+  echo "  ${SYCRONIX_COLOR_PRIMARY}◆${SYCRONIX_COLOR_RESET} Battery: Shows battery percentage and status"
+}
