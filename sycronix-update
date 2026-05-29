@@ -20,12 +20,12 @@ echo -e "  ${YELLOW}Current version: ${SYCRONIX_VERSION}${RESET}"
 # Check for updates via GitHub
 if command -v curl &>/dev/null; then
   echo -e "  ${CYAN}Checking for updates...${RESET}"
-  latest="$(curl -s https://api.github.com/repos/officialsycronix/sycronix-banner-/releases/latest 2>/dev/null | grep '"tag_name"' | head -1 | cut -d'"' -f4 || echo "")"
+  latest="$(curl -s https://api.github.com/repos/officialsycronix/sycronix-banner/releases/latest 2>/dev/null | grep '"tag_name"' | head -1 | cut -d'"' -f4 || echo "")"
   
   if [[ -n "$latest" ]]; then
     if [[ "$latest" != "v${SYCRONIX_VERSION}" ]]; then
       echo -e "  ${GREEN}New version available: ${latest}${RESET}"
-      echo -e "  ${YELLOW}Update with: curl -fsSL https://github.com/officialsycronix/sycronix-banner-/raw/main/install.sh | bash${RESET}"
+      echo -e "  ${YELLOW}Update with: curl -fsSL https://github.com/officialsycronix/sycronix-banner/raw/main/install.sh | bash${RESET}"
     else
       echo -e "  ${GREEN}You are up to date!${RESET}"
     fi
