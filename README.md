@@ -26,13 +26,13 @@
 ## Quick Install
 
 ```bash
-curl -fsSL https://github.com/officailsycronix/sycronix/raw/main/install.sh | bash
+curl -fsSL https://github.com/officialsycronix/sycronix/raw/main/install.sh | bash
 ```
 
 Or clone and install manually:
 
 ```bash
-git clone https://github.com/officailsycronix/sycronix.git
+git clone https://github.com/officialsycronix/sycronix.git
 cd sycronix
 chmod +x install.sh
 ./install.sh
